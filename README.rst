@@ -2,16 +2,35 @@
 Scrapy
 ======
 
-.. image:: https://badge.fury.io/py/Scrapy.png
-   :target: http://badge.fury.io/py/Scrapy
+.. image:: https://img.shields.io/pypi/v/Scrapy.svg
+   :target: https://pypi.python.org/pypi/Scrapy
+   :alt: PyPI Version
 
-.. image:: https://secure.travis-ci.org/scrapy/scrapy.png?branch=master
+.. image:: https://img.shields.io/pypi/dm/Scrapy.svg
+   :target: https://pypi.python.org/pypi/Scrapy
+   :alt: PyPI Monthly downloads
+
+.. image:: https://img.shields.io/travis/scrapy/scrapy/master.svg
    :target: http://travis-ci.org/scrapy/scrapy
+   :alt: Build Status
+
+.. image:: https://img.shields.io/badge/wheel-yes-brightgreen.svg
+   :target: https://pypi.python.org/pypi/Scrapy
+   :alt: Wheel Status
+   
+.. image:: http://static.scrapy.org/py3progress/badge.svg
+   :target: https://github.com/scrapy/scrapy/wiki/Python-3-Porting
+   :alt: Python 3 Porting Status
+
+.. image:: https://img.shields.io/codecov/c/github/scrapy/scrapy/master.svg
+   :target: http://codecov.io/github/scrapy/scrapy?branch=master
+   :alt: Coverage report
+
 
 Overview
 ========
 
-Scrapy is a fast high-level screen scraping and web crawling framework, used to
+Scrapy is a fast high-level web crawling and web scraping framework, used to
 crawl websites and extract structured data from their pages. It can be used for
 a wide range of purposes, from data mining to monitoring and automated testing.
 
@@ -54,7 +73,13 @@ See http://scrapy.org/community/
 Contributing
 ============
 
-See http://doc.scrapy.org/en/latest/contributing.html
+Please note that this project is released with a Contributor Code of Conduct
+(see https://github.com/scrapy/scrapy/blob/master/CODE_OF_CONDUCT.md).
+
+By participating in this project you agree to abide by its terms.
+Please report unacceptable behavior to opensource@scrapinghub.com.
+
+See http://doc.scrapy.org/en/master/contributing.html
 
 Companies using Scrapy
 ======================

@@ -4,6 +4,11 @@
 Contributing to Scrapy
 ======================
 
+.. important::
+
+    Double check you are reading the most recent version of this document at
+    http://doc.scrapy.org/en/master/contributing.html
+
 There are many ways to contribute to Scrapy. Here are some of them:
 
 * Blog about Scrapy. Tell the world how you're using Scrapy. This will help
@@ -17,11 +22,17 @@ There are many ways to contribute to Scrapy. Here are some of them:
   `Writing patches`_ and `Submitting patches`_ below for details on how to
   write and submit a patch.
 
-* Join the `scrapy-developers`_ mailing list and share your ideas on how to
+* Join the `scrapy-users`_ mailing list and share your ideas on how to
   improve Scrapy. We're always open to suggestions.
 
 Reporting bugs
 ==============
+
+.. note::
+
+    Please report security issues **only** to
+    scrapy-security@googlegroups.com. This is a private list only open to
+    trusted Scrapy developers, and its archives are not public.
 
 Well-written bug reports are very helpful, so keep in mind the following
 guidelines when reporting a new bug.
@@ -79,14 +90,17 @@ Remember to explain what was fixed or the new functionality (what it is, why
 it's needed, etc). The more info you include, the easier will be for core
 developers to understand and accept your patch.
 
-You can also discuss the new functionality (or bug fix) in `scrapy-developers`_
-first, before creating the patch, but it's always good to have a patch ready to
-illustrate your arguments and show that you have put some additional thought
-into the subject.
+You can also discuss the new functionality (or bug fix) before creating the
+patch, but it's always good to have a patch ready to illustrate your arguments
+and show that you have put some additional thought into the subject. A good
+starting point is to send a pull request on Github. It can be simple enough to
+illustrate your idea, and leave documentation/tests for later, after the idea
+has been validated and proven useful. Alternatively, you can send an email to
+`scrapy-users`_ to discuss your idea first.
 
 Finally, try to keep aesthetic changes (:pep:`8` compliance, unused imports
-removal, etc) in separate commits than functional changes, to make the pull
-request easier to review.
+removal, etc) in separate commits than functional changes. This will make pull
+requests easier to review and more likely to get merged.
 
 Coding style
 ============
@@ -106,10 +120,10 @@ Scrapy Contrib
 ==============
 
 Scrapy contrib shares a similar rationale as Django contrib, which is explained
-in `this post <http://jacobian.org/writing/what-is-django-contrib/>`_. If you
+in `this post <https://jacobian.org/writing/what-is-django-contrib/>`_. If you
 are working on a new functionality, please follow that rationale to decide
 whether it should be a Scrapy contrib. If unsure, you can ask in
-`scrapy-developers`_.
+`scrapy-users`_.
 
 Documentation policies
 ======================
@@ -126,23 +140,35 @@ Documentation policies
 Tests
 =====
 
-Tests are implemented using the `Twisted unit-testing framework`_ called
-``trial``.
+Tests are implemented using the `Twisted unit-testing framework`_, running
+tests requires `tox`_.
 
 Running tests
 -------------
 
+Make sure you have a recent enough `tox`_ installation:
+
+    ``tox --version``
+
+If your version is older than 1.7.0, please update it first:
+
+    ``pip install -U tox``
+
 To run all tests go to the root directory of Scrapy source code and run:
 
-    ``bin/runtests.sh`` (on unix)
+    ``tox``
 
-    ``bin\runtests.bat`` (on windows)
+To run a specific test (say ``tests/test_loader.py``) use:
 
-To run a specific test (say ``scrapy.tests.test_contrib_loader``) use:
+    ``tox -- tests/test_loader.py``
 
-    ``bin/runtests.sh scrapy.tests.test_contrib_loader`` (on unix)
+To see coverage report install `coverage`_ (``pip install coverage``) and run:
 
-    ``bin\runtests.bat scrapy.tests.test_contrib_loader`` (on windows)
+    ``coverage report``
+
+see output of ``coverage --help`` for more options like html or xml report.
+
+.. _coverage: https://pypi.python.org/pypi/coverage
 
 Writing tests
 -------------
@@ -151,21 +177,21 @@ All functionality (including new features and bug fixes) must include a test
 case to check that it works as expected, so please include tests for your
 patches if you want them to get accepted sooner.
 
-Scrapy uses unit-tests, which are located in the ``scrapy.tests`` package
-(`scrapy/tests`_ directory). Their module name typically resembles the full
-path of the module they're testing. For example, the item loaders code is in::
+Scrapy uses unit-tests, which are located in the `tests/`_ directory.
+Their module name typically resembles the full path of the module they're
+testing. For example, the item loaders code is in::
 
-    scrapy.contrib.loader
+    scrapy.loader
 
 And their unit-tests are in::
 
-    scrapy.tests.test_contrib_loader
+    tests/test_loader.py
 
 .. _issue tracker: https://github.com/scrapy/scrapy/issues
-.. _scrapy-users: http://groups.google.com/group/scrapy-users
-.. _scrapy-developers: http://groups.google.com/group/scrapy-developers
-.. _Twisted unit-testing framework: http://twistedmatrix.com/documents/current/core/development/policy/test-standard.html
+.. _scrapy-users: https://groups.google.com/forum/#!forum/scrapy-users
+.. _Twisted unit-testing framework: https://twistedmatrix.com/documents/current/core/development/policy/test-standard.html
 .. _AUTHORS: https://github.com/scrapy/scrapy/blob/master/AUTHORS
-.. _scrapy/tests: https://github.com/scrapy/scrapy/tree/master/scrapy/tests
+.. _tests/: https://github.com/scrapy/scrapy/tree/master/tests
 .. _open issues: https://github.com/scrapy/scrapy/issues
-.. _pull request: http://help.github.com/send-pull-requests/
+.. _pull request: https://help.github.com/send-pull-requests/
+.. _tox: https://pypi.python.org/pypi/tox

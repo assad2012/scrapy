@@ -7,8 +7,7 @@ import pkg_resources
 
 import scrapy
 from scrapy.crawler import CrawlerProcess
-from scrapy.xlib import lsprofcalltree
-from scrapy.command import ScrapyCommand
+from scrapy.commands import ScrapyCommand
 from scrapy.exceptions import UsageError
 from scrapy.utils.misc import walk_modules
 from scrapy.utils.project import inside_project, get_project_settings
@@ -18,10 +17,10 @@ def _iter_command_classes(module_name):
     # TODO: add `name` attribute to commands and and merge this function with
     # scrapy.utils.spider.iter_spider_classes
     for module in walk_modules(module_name):
-        for obj in vars(module).itervalues():
+        for obj in vars(module).values():
             if inspect.isclass(obj) and \
-               issubclass(obj, ScrapyCommand) and \
-               obj.__module__ == module.__name__:
+                    issubclass(obj, ScrapyCommand) and \
+                    obj.__module__ == module.__name__:
                 yield obj
 
 def _get_commands_from_module(module, inproject):
@@ -71,7 +70,7 @@ def _print_commands(settings, inproject):
     print("  scrapy <command> [options] [args]\n")
     print("Available commands:")
     cmds = _get_commands_dict(settings, inproject)
-    for cmdname, cmdclass in sorted(cmds.iteritems()):
+    for cmdname, cmdclass in sorted(cmds.items()):
         print("  %-13s %s" % (cmdname, cmdclass.short_desc()))
     if not inproject:
         print()
@@ -133,7 +132,7 @@ def execute(argv=None, settings=None):
     cmd = cmds[cmdname]
     parser.usage = "scrapy %s %s" % (cmdname, cmd.syntax())
     parser.description = cmd.long_desc()
-    settings.defaults.update(cmd.default_settings)
+    settings.setdict(cmd.default_settings, priority='command')
     cmd.settings = settings
     cmd.add_options(parser)
     opts, args = parser.parse_args(args=argv[1:])
@@ -144,7 +143,7 @@ def execute(argv=None, settings=None):
     sys.exit(cmd.exitcode)
 
 def _run_command(cmd, args, opts):
-    if opts.profile or opts.lsprof:
+    if opts.profile:
         _run_command_profiled(cmd, args, opts)
     else:
         cmd.run(args, opts)
@@ -152,17 +151,11 @@ def _run_command(cmd, args, opts):
 def _run_command_profiled(cmd, args, opts):
     if opts.profile:
         sys.stderr.write("scrapy: writing cProfile stats to %r\n" % opts.profile)
-    if opts.lsprof:
-        sys.stderr.write("scrapy: writing lsprof stats to %r\n" % opts.lsprof)
     loc = locals()
     p = cProfile.Profile()
     p.runctx('cmd.run(args, opts)', globals(), loc)
     if opts.profile:
         p.dump_stats(opts.profile)
-    k = lsprofcalltree.KCacheGrind(p)
-    if opts.lsprof:
-        with open(opts.lsprof, 'w') as f:
-            k.output(f)
 
 if __name__ == '__main__':
     execute()

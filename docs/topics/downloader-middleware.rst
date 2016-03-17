@@ -24,10 +24,10 @@ Here's an example::
     }
 
 The :setting:`DOWNLOADER_MIDDLEWARES` setting is merged with the
-:setting:`DOWNLOADER_MIDDLEWARES_BASE` setting defined in Scrapy (and not meant to
-be overridden) and then sorted by order to get the final sorted list of enabled
-middlewares: the first middleware is the one closer to the engine and the last
-is the one closer to the downloader.
+:setting:`DOWNLOADER_MIDDLEWARES_BASE` setting defined in Scrapy (and not meant
+to be overridden) and then sorted by order to get the final sorted list of
+enabled middlewares: the first middleware is the one closer to the engine and
+the last is the one closer to the downloader.
 
 To decide which order to assign to your middleware see the
 :setting:`DOWNLOADER_MIDDLEWARES_BASE` setting and pick a value according to
@@ -42,7 +42,7 @@ as its value.  For example, if you want to disable the user-agent middleware::
 
     DOWNLOADER_MIDDLEWARES = {
         'myproject.middlewares.CustomDownloaderMiddleware': 543,
-        'scrapy.contrib.downloadermiddleware.useragent.UserAgentMiddleware': None,
+        'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
     }
 
 Finally, keep in mind that some middlewares may need to be enabled through a
@@ -51,12 +51,14 @@ particular setting. See each middleware documentation for more info.
 Writing your own downloader middleware
 ======================================
 
-Writing your own downloader middleware is easy. Each middleware component is a
-single Python class that defines one or more of the following methods:
+Each middleware component is a Python class that defines one or
+more of the following methods:
 
-.. module:: scrapy.contrib.downloadermiddleware
+.. module:: scrapy.downloadermiddlewares
 
 .. class:: DownloaderMiddleware
+
+   .. note::  Any of the downloader middleware methods may also return a deferred.
 
    .. method:: process_request(request, spider)
 
@@ -91,7 +93,7 @@ single Python class that defines one or more of the following methods:
       :type request: :class:`~scrapy.http.Request` object
 
       :param spider: the spider for which this request is intended
-      :type spider: :class:`~scrapy.spider.Spider` object
+      :type spider: :class:`~scrapy.spiders.Spider` object
 
    .. method:: process_response(request, response, spider)
 
@@ -118,7 +120,7 @@ single Python class that defines one or more of the following methods:
       :type response: :class:`~scrapy.http.Response` object
 
       :param spider: the spider for which this response is intended
-      :type spider: :class:`~scrapy.spider.Spider` object
+      :type spider: :class:`~scrapy.spiders.Spider` object
 
    .. method:: process_exception(request, exception, spider)
 
@@ -149,7 +151,7 @@ single Python class that defines one or more of the following methods:
       :type exception: an ``Exception`` object
 
       :param spider: the spider for which this request is intended
-      :type spider: :class:`~scrapy.spider.Spider` object
+      :type spider: :class:`~scrapy.spiders.Spider` object
 
 .. _topics-downloader-middleware-ref:
 
@@ -169,7 +171,7 @@ For a list of the components enabled by default (and their orders) see the
 CookiesMiddleware
 -----------------
 
-.. module:: scrapy.contrib.downloadermiddleware.cookies
+.. module:: scrapy.downloadermiddlewares.cookies
    :synopsis: Cookies Downloader Middleware
 
 .. class:: CookiesMiddleware
@@ -198,7 +200,7 @@ There is support for keeping multiple cookie sessions per spider by using the
 For example::
 
     for i, url in enumerate(urls):
-        yield Request("http://www.example.com", meta={'cookiejar': i},
+        yield scrapy.Request("http://www.example.com", meta={'cookiejar': i},
             callback=self.parse_page)
 
 Keep in mind that the :reqmeta:`cookiejar` meta key is not "sticky". You need to keep
@@ -206,7 +208,7 @@ passing it along on subsequent requests. For example::
 
     def parse_page(self, response):
         # do some processing
-        return Request("http://www.example.com/otherpage",
+        return scrapy.Request("http://www.example.com/otherpage",
             meta={'cookiejar': response.meta['cookiejar']},
             callback=self.parse_other_page)
 
@@ -232,21 +234,21 @@ header) and all cookies received in responses (ie. ``Set-Cookie`` header).
 
 Here's an example of a log with :setting:`COOKIES_DEBUG` enabled::
 
-    2011-04-06 14:35:10-0300 [diningcity] INFO: Spider opened
-    2011-04-06 14:35:10-0300 [diningcity] DEBUG: Sending cookies to: <GET http://www.diningcity.com/netherlands/index.html>
+    2011-04-06 14:35:10-0300 [scrapy] INFO: Spider opened
+    2011-04-06 14:35:10-0300 [scrapy] DEBUG: Sending cookies to: <GET http://www.diningcity.com/netherlands/index.html>
             Cookie: clientlanguage_nl=en_EN
-    2011-04-06 14:35:14-0300 [diningcity] DEBUG: Received cookies from: <200 http://www.diningcity.com/netherlands/index.html>
+    2011-04-06 14:35:14-0300 [scrapy] DEBUG: Received cookies from: <200 http://www.diningcity.com/netherlands/index.html>
             Set-Cookie: JSESSIONID=B~FA4DC0C496C8762AE4F1A620EAB34F38; Path=/
             Set-Cookie: ip_isocode=US
             Set-Cookie: clientlanguage_nl=en_EN; Expires=Thu, 07-Apr-2011 21:21:34 GMT; Path=/
-    2011-04-06 14:49:50-0300 [diningcity] DEBUG: Crawled (200) <GET http://www.diningcity.com/netherlands/index.html> (referer: None)
+    2011-04-06 14:49:50-0300 [scrapy] DEBUG: Crawled (200) <GET http://www.diningcity.com/netherlands/index.html> (referer: None)
     [...]
 
 
 DefaultHeadersMiddleware
 ------------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.defaultheaders
+.. module:: scrapy.downloadermiddlewares.defaultheaders
    :synopsis: Default Headers Downloader Middleware
 
 .. class:: DefaultHeadersMiddleware
@@ -257,18 +259,25 @@ DefaultHeadersMiddleware
 DownloadTimeoutMiddleware
 -------------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.downloadtimeout
+.. module:: scrapy.downloadermiddlewares.downloadtimeout
    :synopsis: Download timeout middleware
 
 .. class:: DownloadTimeoutMiddleware
 
     This middleware sets the download timeout for requests specified in the
-    :setting:`DOWNLOAD_TIMEOUT` setting.
+    :setting:`DOWNLOAD_TIMEOUT` setting or :attr:`download_timeout`
+    spider attribute.
+
+.. note::
+
+    You can also set download timeout per-request using
+    :reqmeta:`download_timeout` Request.meta key; this is supported
+    even when DownloadTimeoutMiddleware is disabled.
 
 HttpAuthMiddleware
 ------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.httpauth
+.. module:: scrapy.downloadermiddlewares.httpauth
    :synopsis: HTTP Auth downloader middleware
 
 .. class:: HttpAuthMiddleware
@@ -281,7 +290,7 @@ HttpAuthMiddleware
 
     Example::
 
-        from scrapy.contrib.spiders import CrawlSpider
+        from scrapy.spiders import CrawlSpider
 
         class SomeIntranetSiteSpider(CrawlSpider):
 
@@ -291,13 +300,13 @@ HttpAuthMiddleware
 
             # .. rest of the spider code omitted ...
 
-.. _Basic access authentication: http://en.wikipedia.org/wiki/Basic_access_authentication
+.. _Basic access authentication: https://en.wikipedia.org/wiki/Basic_access_authentication
 
 
 HttpCacheMiddleware
 -------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.httpcache
+.. module:: scrapy.downloadermiddlewares.httpcache
    :synopsis: HTTP Cache downloader middleware
 
 .. class:: HttpCacheMiddleware
@@ -321,6 +330,9 @@ HttpCacheMiddleware
     You can change the HTTP cache policy with the :setting:`HTTPCACHE_POLICY`
     setting. Or you can also implement your own policy.
 
+    .. reqmeta:: dont_cache
+
+    You can also avoid caching a response on every policy using :reqmeta:`dont_cache` meta key equals `True`.
 
 .. _httpcache-policy-dummy:
 
@@ -339,7 +351,7 @@ when an Internet connection is not available. The goal is to be able to
 
 In order to use this policy, set:
 
-* :setting:`HTTPCACHE_POLICY` to ``scrapy.contrib.httpcache.DummyPolicy``
+* :setting:`HTTPCACHE_POLICY` to ``scrapy.extensions.httpcache.DummyPolicy``
 
 
 .. _httpcache-policy-rfc2616:
@@ -363,17 +375,29 @@ what is implemented:
 * Revalidate stale responses based on `Last-Modified` response header
 * Revalidate stale responses based on `ETag` response header
 * Set `Date` header for any received response missing it
+* Support `max-stale` cache-control directive in requests
+
+  This allows spiders to be configured with the full RFC2616 cache policy,
+  but avoid revalidation on a request-by-request basis, while remaining
+  conformant with the HTTP spec.
+
+  Example:
+
+  Add `Cache-Control: max-stale=600` to Request headers to accept responses that
+  have exceeded their expiration time by no more than 600 seconds.
+
+  See also: RFC2616, 14.9.3
 
 what is missing:
 
-* `Pragma: no-cache` support http://www.mnot.net/cache_docs/#PRAGMA
-* `Vary` header support http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.6
-* Invalidation after updates or deletes http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.10
+* `Pragma: no-cache` support https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.9.1
+* `Vary` header support https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.6
+* Invalidation after updates or deletes https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.10
 * ... probably others ..
 
 In order to use this policy, set:
 
-* :setting:`HTTPCACHE_POLICY` to ``scrapy.contrib.httpcache.RFC2616Policy``
+* :setting:`HTTPCACHE_POLICY` to ``scrapy.extensions.httpcache.RFC2616Policy``
 
 
 .. _httpcache-storage-fs:
@@ -385,7 +409,7 @@ File system storage backend is available for the HTTP cache middleware.
 
 In order to use this storage backend, set:
 
-* :setting:`HTTPCACHE_STORAGE` to ``scrapy.contrib.httpcache.FilesystemCacheStorage``
+* :setting:`HTTPCACHE_STORAGE` to ``scrapy.extensions.httpcache.FilesystemCacheStorage``
 
 Each request/response pair is stored in a different directory containing
 the following files:
@@ -420,7 +444,28 @@ By default, it uses the anydbm_ module, but you can change it with the
 
 In order to use this storage backend, set:
 
-* :setting:`HTTPCACHE_STORAGE` to ``scrapy.contrib.httpcache.DbmCacheStorage``
+* :setting:`HTTPCACHE_STORAGE` to ``scrapy.extensions.httpcache.DbmCacheStorage``
+
+.. _httpcache-storage-leveldb:
+
+LevelDB storage backend
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.23
+
+A LevelDB_ storage backend is also available for the HTTP cache middleware.
+
+This backend is not recommended for development because only one process can
+access LevelDB databases at the same time, so you can't run a crawl and open
+the scrapy shell in parallel for the same spider.
+
+In order to use this storage backend:
+
+* set :setting:`HTTPCACHE_STORAGE` to ``scrapy.extensions.httpcache.LeveldbCacheStorage``
+* install `LevelDB python bindings`_ like ``pip install leveldb``
+
+.. _LevelDB: https://github.com/google/leveldb
+.. _leveldb python bindings: https://pypi.python.org/pypi/leveldb
 
 
 HTTPCache middleware settings
@@ -505,7 +550,7 @@ Don't cache responses with these URI schemes.
 HTTPCACHE_STORAGE
 ^^^^^^^^^^^^^^^^^
 
-Default: ``'scrapy.contrib.httpcache.FilesystemCacheStorage'``
+Default: ``'scrapy.extensions.httpcache.FilesystemCacheStorage'``
 
 The class which implements the cache storage backend.
 
@@ -528,15 +573,66 @@ HTTPCACHE_POLICY
 
 .. versionadded:: 0.18
 
-Default: ``'scrapy.contrib.httpcache.DummyPolicy'``
+Default: ``'scrapy.extensions.httpcache.DummyPolicy'``
 
 The class which implements the cache policy.
 
+.. setting:: HTTPCACHE_GZIP
+
+HTTPCACHE_GZIP
+^^^^^^^^^^^^^^
+
+.. versionadded:: 1.0
+
+Default: ``False``
+
+If enabled, will compress all cached data with gzip.
+This setting is specific to the Filesystem backend.
+
+.. setting:: HTTPCACHE_ALWAYS_STORE
+
+HTTPCACHE_ALWAYS_STORE
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 1.1
+
+Default: ``False``
+
+If enabled, will cache pages unconditionally.
+
+A spider may wish to have all responses available in the cache, for
+future use with `Cache-Control: max-stale`, for instance. The
+DummyPolicy caches all responses but never revalidates them, and
+sometimes a more nuanced policy is desirable.
+
+This setting still respects `Cache-Control: no-store` directives in responses.
+If you don't want that, filter `no-store` out of the Cache-Control headers in
+responses you feedto the cache middleware.
+
+.. setting:: HTTPCACHE_IGNORE_RESPONSE_CACHE_CONTROLS
+
+HTTPCACHE_IGNORE_RESPONSE_CACHE_CONTROLS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 1.1
+
+Default: ``[]``
+
+List of Cache-Control directives in responses to be ignored.
+
+Sites often set "no-store", "no-cache", "must-revalidate", etc., but get
+upset at the traffic a spider can generate if it respects those
+directives. This allows to selectively ignore Cache-Control directives
+that are known to be unimportant for the sites being crawled.
+
+We assume that the spider will not issue Cache-Control directives
+in requests unless it actually needs them, so directives in requests are
+not filtered.
 
 HttpCompressionMiddleware
 -------------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.httpcompression
+.. module:: scrapy.downloadermiddlewares.httpcompression
    :synopsis: Http Compression Middleware
 
 .. class:: HttpCompressionMiddleware
@@ -560,7 +656,7 @@ Whether the Compression middleware will be enabled.
 ChunkedTransferMiddleware
 -------------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.chunked
+.. module:: scrapy.downloadermiddlewares.chunked
    :synopsis: Chunked Transfer Middleware
 
 .. class:: ChunkedTransferMiddleware
@@ -570,15 +666,17 @@ ChunkedTransferMiddleware
 HttpProxyMiddleware
 -------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.httpproxy
+.. module:: scrapy.downloadermiddlewares.httpproxy
    :synopsis: Http Proxy Middleware
 
 .. versionadded:: 0.8
 
+.. reqmeta:: proxy
+
 .. class:: HttpProxyMiddleware
 
    This middleware sets the HTTP proxy to use for requests, by setting the
-   ``proxy`` meta value to :class:`~scrapy.http.Request` objects.
+   ``proxy`` meta value for :class:`~scrapy.http.Request` objects.
 
    Like the Python standard library modules `urllib`_ and `urllib2`_, it obeys
    the following environment variables:
@@ -587,13 +685,16 @@ HttpProxyMiddleware
    * ``https_proxy``
    * ``no_proxy``
 
-.. _urllib: http://docs.python.org/library/urllib.html
-.. _urllib2: http://docs.python.org/library/urllib2.html
+   You can also set the meta key ``proxy`` per-request, to a value like
+   ``http://some_proxy_server:port``.
+
+.. _urllib: https://docs.python.org/2/library/urllib.html
+.. _urllib2: https://docs.python.org/2/library/urllib2.html
 
 RedirectMiddleware
 ------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.redirect
+.. module:: scrapy.downloadermiddlewares.redirect
    :synopsis: Redirection Middleware
 
 .. class:: RedirectMiddleware
@@ -613,8 +714,23 @@ settings (see the settings documentation for more info):
 
 .. reqmeta:: dont_redirect
 
-If :attr:`Request.meta <scrapy.http.Request.meta>` contains the
-``dont_redirect`` key, the request will be ignored by this middleware.
+If :attr:`Request.meta <scrapy.http.Request.meta>` has ``dont_redirect``
+key set to True, the request will be ignored by this middleware.
+
+If you want to handle some redirect status codes in your spider, you can
+specify these in the ``handle_httpstatus_list`` spider attribute.
+
+For example, if you want the redirect middleware to ignore 301 and 302
+responses (and pass them through to your spider) you can do this::
+
+    class MySpider(CrawlSpider):
+        handle_httpstatus_list = [301, 302]
+
+The ``handle_httpstatus_list`` key of :attr:`Request.meta
+<scrapy.http.Request.meta>` can also be used to specify which response codes to
+allow on a per-request basis. You can also set the meta key
+``handle_httpstatus_all`` to ``True`` if you want to allow any response code
+for a request.
 
 
 RedirectMiddleware settings
@@ -671,24 +787,26 @@ Default: ``True``
 
 Whether the Meta Refresh middleware will be enabled.
 
-.. setting:: REDIRECT_MAX_METAREFRESH_DELAY
+.. setting:: METAREFRESH_MAXDELAY
 
-REDIRECT_MAX_METAREFRESH_DELAY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+METAREFRESH_MAXDELAY
+^^^^^^^^^^^^^^^^^^^^
 
 Default: ``100``
 
 The maximum meta-refresh delay (in seconds) to follow the redirection.
+Some sites use meta-refresh for redirecting to a session expired page, so we
+restrict automatic redirection to the maximum delay.
 
 RetryMiddleware
 ---------------
 
-.. module:: scrapy.contrib.downloadermiddleware.retry
+.. module:: scrapy.downloadermiddlewares.retry
    :synopsis: Retry Middleware
 
 .. class:: RetryMiddleware
 
-   A middlware to retry failed requests that are potentially caused by
+   A middleware to retry failed requests that are potentially caused by
    temporary problems such as a connection timeout or HTTP 500 error.
 
 Failed pages are collected on the scraping process and rescheduled at the
@@ -703,16 +821,10 @@ settings (see the settings documentation for more info):
 * :setting:`RETRY_TIMES`
 * :setting:`RETRY_HTTP_CODES`
 
-About HTTP errors to consider:
-
-You may want to remove 400 from :setting:`RETRY_HTTP_CODES`, if you stick to the
-HTTP protocol. It's included by default because it's a common code used
-to indicate server overload, which would be something we want to retry.
-
 .. reqmeta:: dont_retry
 
-If :attr:`Request.meta <scrapy.http.Request.meta>` contains the ``dont_retry``
-key, the request will be ignored by this middleware.
+If :attr:`Request.meta <scrapy.http.Request.meta>` has ``dont_retry`` key
+set to True, the request will be ignored by this middleware.
 
 RetryMiddleware Settings
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -742,17 +854,22 @@ Maximum number of times to retry, in addition to the first download.
 RETRY_HTTP_CODES
 ^^^^^^^^^^^^^^^^
 
-Default: ``[500, 502, 503, 504, 400, 408]``
+Default: ``[500, 502, 503, 504, 408]``
 
 Which HTTP response codes to retry. Other errors (DNS lookup issues,
 connections lost, etc) are always retried.
+
+In some cases you may want to add 400 to :setting:`RETRY_HTTP_CODES` because
+it is a common code used to indicate server overload. It is not included by
+default because HTTP specs say so.
+
 
 .. _topics-dlmw-robots:
 
 RobotsTxtMiddleware
 -------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.robotstxt
+.. module:: scrapy.downloadermiddlewares.robotstxt
    :synopsis: robots.txt middleware
 
 .. class:: RobotsTxtMiddleware
@@ -763,16 +880,18 @@ RobotsTxtMiddleware
     To make sure Scrapy respects robots.txt make sure the middleware is enabled
     and the :setting:`ROBOTSTXT_OBEY` setting is enabled.
 
-    .. warning:: Keep in mind that, if you crawl using multiple concurrent
-       requests per domain, Scrapy could still  download some forbidden pages
-       if they were requested before the robots.txt file was downloaded. This
-       is a known limitation of the current robots.txt middleware and will
-       be fixed in the future.
+.. reqmeta:: dont_obey_robotstxt
+
+If :attr:`Request.meta <scrapy.http.Request.meta>` has
+``dont_obey_robotstxt`` key set to True
+the request will be ignored by this middleware even if
+:setting:`ROBOTSTXT_OBEY` is enabled.
+
 
 DownloaderStats
 ---------------
 
-.. module:: scrapy.contrib.downloadermiddleware.stats
+.. module:: scrapy.downloadermiddlewares.stats
    :synopsis: Downloader Stats Middleware
 
 .. class:: DownloaderStats
@@ -786,7 +905,7 @@ DownloaderStats
 UserAgentMiddleware
 -------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.useragent
+.. module:: scrapy.downloadermiddlewares.useragent
    :synopsis: User Agent Middleware
 
 .. class:: UserAgentMiddleware
@@ -801,7 +920,7 @@ UserAgentMiddleware
 AjaxCrawlMiddleware
 -------------------
 
-.. module:: scrapy.contrib.downloadermiddleware.ajaxcrawl
+.. module:: scrapy.downloadermiddlewares.ajaxcrawl
 
 .. class:: AjaxCrawlMiddleware
 
@@ -832,7 +951,19 @@ Default: ``False``
 Whether the AjaxCrawlMiddleware will be enabled. You may want to
 enable it for :ref:`broad crawls <topics-broad-crawls>`.
 
+HttpProxyMiddleware settings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _DBM: http://en.wikipedia.org/wiki/Dbm
-.. _anydbm: http://docs.python.org/library/anydbm.html
-.. _chunked transfer encoding: http://en.wikipedia.org/wiki/Chunked_transfer_encoding
+.. setting:: HTTPPROXY_AUTH_ENCODING
+
+HTTPPROXY_AUTH_ENCODING
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``"latin-1"``
+
+The default encoding for proxy authentication on :class:`HttpProxyMiddleware`.
+
+
+.. _DBM: https://en.wikipedia.org/wiki/Dbm
+.. _anydbm: https://docs.python.org/2/library/anydbm.html
+.. _chunked transfer encoding: https://en.wikipedia.org/wiki/Chunked_transfer_encoding

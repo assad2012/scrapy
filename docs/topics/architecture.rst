@@ -102,10 +102,10 @@ this:
 6. The Engine receives the Response from the Downloader and sends it to the
    Spider for processing, passing through the Spider Middleware (input direction).
 
-7. The Spider processes the Response and returns scraped Items and new Requests
+7. The Spider processes the Response and returns scraped items and new Requests
    (to follow) to the Engine.
 
-8. The Engine sends scraped Items (returned by the Spider) to the Item Pipeline
+8. The Engine sends scraped items (returned by the Spider) to the Item Pipeline
    and Requests (returned by spider) to the Scheduler
 
 9. The process repeats (from step 2) until there are no more requests from the
@@ -121,10 +121,12 @@ for concurrency.
 For more information about asynchronous programming and Twisted see these
 links:
 
-* `Asynchronous Programming with Twisted`_
+* `Introduction to Deferreds in Twisted`_
 * `Twisted - hello, asynchronous programming`_
+* `Twisted Introduction - Krondo`_
 
-.. _Twisted: http://twistedmatrix.com/trac/
-.. _Asynchronous Programming with Twisted: http://twistedmatrix.com/projects/core/documentation/howto/async.html
+.. _Twisted: https://twistedmatrix.com/trac/
+.. _Introduction to Deferreds in Twisted: https://twistedmatrix.com/documents/current/core/howto/defer-intro.html
 .. _Twisted - hello, asynchronous programming: http://jessenoller.com/2009/02/11/twisted-hello-asynchronous-programming/
+.. _Twisted Introduction - Krondo: http://krondo.com/an-introduction-to-asynchronous-programming-and-twisted/
 

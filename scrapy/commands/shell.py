@@ -3,17 +3,23 @@ Scrapy Shell
 
 See documentation in docs/topics/shell.rst
 """
-
 from threading import Thread
 
-from scrapy.command import ScrapyCommand
+from scrapy.commands import ScrapyCommand
 from scrapy.shell import Shell
+from scrapy.http import Request
+from scrapy.utils.spider import spidercls_for_request, DefaultSpider
+from scrapy.utils.url import guess_scheme
 
 
 class Command(ScrapyCommand):
 
     requires_project = False
-    default_settings = {'KEEP_ALIVE': True, 'LOGSTATS_INTERVAL': 0}
+    default_settings = {
+        'KEEP_ALIVE': True,
+        'LOGSTATS_INTERVAL': 0,
+        'DUPEFILTER_CLASS': 'scrapy.dupefilters.BaseDupeFilter',
+    }
 
     def syntax(self):
         return "[url|file]"
@@ -38,18 +44,34 @@ class Command(ScrapyCommand):
         pass
 
     def run(self, args, opts):
-        crawler = self.crawler_process.create_crawler()
-
         url = args[0] if args else None
-        spider = crawler.spiders.create(opts.spider) if opts.spider else None
+        if url:
+            # first argument may be a local file
+            url = guess_scheme(url)
 
-        self.crawler_process.start_crawling()
+        spider_loader = self.crawler_process.spider_loader
+
+        spidercls = DefaultSpider
+        if opts.spider:
+            spidercls = spider_loader.load(opts.spider)
+        elif url:
+            spidercls = spidercls_for_request(spider_loader, Request(url),
+                                              spidercls, log_multiple=True)
+
+        # The crawler is created this way since the Shell manually handles the
+        # crawling engine, so the set up in the crawl method won't work
+        crawler = self.crawler_process._create_crawler(spidercls)
+        # The Shell class needs a persistent engine in the crawler
+        crawler.engine = crawler._create_engine()
+        crawler.engine.start()
+
         self._start_crawler_thread()
 
         shell = Shell(crawler, update_vars=self.update_vars, code=opts.code)
-        shell.start(url=url, spider=spider)
+        shell.start(url=url)
 
     def _start_crawler_thread(self):
-        t = Thread(target=self.crawler_process.start_reactor)
+        t = Thread(target=self.crawler_process.start,
+                   kwargs={'stop_after_crawl': False})
         t.daemon = True
         t.start()

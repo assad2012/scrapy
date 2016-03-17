@@ -4,10 +4,10 @@
 Item Exporters
 ==============
 
-.. module:: scrapy.contrib.exporter
+.. module:: scrapy.exporters
    :synopsis: Item Exporters
 
-Once you have scraped your Items, you often want to persist or export those
+Once you have scraped your items, you often want to persist or export those
 items, to use the data in some other application. That is, after all, the whole
 purpose of the scraping process.
 
@@ -40,7 +40,7 @@ Here you can see an :doc:`Item Pipeline <item-pipeline>` which uses an Item
 Exporter to export scraped items to different files, one per spider::
 
    from scrapy import signals
-   from scrapy.contrib.exporter import XmlItemExporter
+   from scrapy.exporters import XmlItemExporter
 
    class XmlExportPipeline(object):
 
@@ -90,20 +90,20 @@ described next.
 1. Declaring a serializer in the field
 --------------------------------------
 
-You can declare a serializer in the :ref:`field metadata
-<topics-items-fields>`. The serializer must be a callable which receives a
-value and returns its serialized form.
+If you use :class:`~.Item` you can declare a serializer in the 
+:ref:`field metadata <topics-items-fields>`. The serializer must be 
+a callable which receives a value and returns its serialized form.
 
 Example::
 
-      from scrapy.item import Item, Field
+    import scrapy
 
-      def serialize_price(value):
-         return '$ %s' % str(value)
+    def serialize_price(value):
+        return '$ %s' % str(value)
 
-      class Product(Item):
-          name = Field()
-          price = Field(serializer=serialize_price)
+    class Product(scrapy.Item):
+        name = scrapy.Field()
+        price = scrapy.Field(serializer=serialize_price)
 
 
 2. Overriding the serialize_field() method
@@ -113,11 +113,11 @@ You can also override the :meth:`~BaseItemExporter.serialize_field()` method to
 customize how your field value will be exported.
 
 Make sure you call the base class :meth:`~BaseItemExporter.serialize_field()` method
-after your custom code. 
+after your custom code.
 
 Example::
 
-      from scrapy.contrib.exporter import XmlItemExporter
+      from scrapy.exporter import XmlItemExporter
 
       class ProductXmlExporter(XmlItemExporter):
 
@@ -125,7 +125,7 @@ Example::
               if field == 'price':
                   return '$ %s' % str(value)
               return super(Product, self).serialize_field(field, name, value)
-             
+
 .. _topics-exporters-reference:
 
 Built-in Item Exporters reference
@@ -146,7 +146,7 @@ BaseItemExporter
    support for common features used by all (concrete) Item Exporters, such as
    defining what fields to export, whether to export empty fields, or which
    encoding to use.
-   
+
    These features can be configured through the constructor arguments which
    populate their respective instance attributes: :attr:`fields_to_export`,
    :attr:`export_empty_fields`, :attr:`encoding`.
@@ -167,8 +167,9 @@ BaseItemExporter
       value unchanged except for ``unicode`` values which are encoded to
       ``str`` using the encoding declared in the :attr:`encoding` attribute.
 
-      :param field: the field being serialized
-      :type field: :class:`~scrapy.item.Field` object
+      :param field: the field being serialized. If a raw dict is being 
+          exported (not :class:`~.Item`) *field* value is an empty dict.
+      :type field: :class:`~scrapy.item.Field` object or an empty dict 
 
       :param name: the name of the field being serialized
       :type name: str
@@ -197,11 +198,16 @@ BaseItemExporter
       Some exporters (like :class:`CsvItemExporter`) respect the order of the
       fields defined in this attribute.
 
+      Some exporters may require fields_to_export list in order to export the
+      data properly when spiders return dicts (not :class:`~Item` instances).
+
    .. attribute:: export_empty_fields
 
       Whether to include empty/unpopulated item fields in the exported data.
       Defaults to ``False``. Some exporters (like :class:`CsvItemExporter`)
       ignore this attribute and always export all empty fields.
+
+      This option is ignored for dict items.
 
    .. attribute:: encoding
 
@@ -278,7 +284,7 @@ CsvItemExporter
    :param file: the file-like object to use for exporting the data.
 
    :param include_headers_line: If enabled, makes the exporter output a header
-      line with the field names taken from 
+      line with the field names taken from
       :attr:`BaseItemExporter.fields_to_export` or the first exported item fields.
    :type include_headers_line: boolean
 
@@ -296,15 +302,15 @@ CsvItemExporter
       product,price
       Color TV,1200
       DVD player,200
-      
-.. _csv.writer: http://docs.python.org/library/csv.html#csv.writer
+
+.. _csv.writer: https://docs.python.org/2/library/csv.html#csv.writer
 
 PickleItemExporter
 ------------------
 
 .. class:: PickleItemExporter(file, protocol=0, \**kwargs)
 
-   Exports Items in pickle format to the given file-like object. 
+   Exports Items in pickle format to the given file-like object.
 
    :param file: the file-like object to use for exporting the data.
 
@@ -318,7 +324,7 @@ PickleItemExporter
 
    Pickle isn't a human readable format, so no output examples are provided.
 
-.. _pickle module documentation: http://docs.python.org/library/pickle.html
+.. _pickle module documentation: https://docs.python.org/2/library/pickle.html
 
 PprintItemExporter
 ------------------
@@ -367,7 +373,7 @@ JsonItemExporter
       stream-friendly format, consider using :class:`JsonLinesItemExporter`
       instead, or splitting the output in multiple chunks.
 
-.. _JSONEncoder: http://docs.python.org/library/json.html#json.JSONEncoder
+.. _JSONEncoder: https://docs.python.org/2/library/json.html#json.JSONEncoder
 
 JsonLinesItemExporter
 ---------------------
@@ -390,4 +396,4 @@ JsonLinesItemExporter
    Unlike the one produced by :class:`JsonItemExporter`, the format produced by
    this exporter is well suited for serializing large amounts of data.
 
-.. _JSONEncoder: http://docs.python.org/library/json.html#json.JSONEncoder
+.. _JSONEncoder: https://docs.python.org/2/library/json.html#json.JSONEncoder

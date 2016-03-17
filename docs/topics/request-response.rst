@@ -37,7 +37,7 @@ Request objects
        request (once its downloaded) as its first parameter. For more information
        see :ref:`topics-request-response-ref-request-callback-arguments` below.
        If a Request doesn't specify a callback, the spider's
-       :meth:`~scrapy.spider.Spider.parse` method will be used.
+       :meth:`~scrapy.spiders.Spider.parse` method will be used.
        Note that if exceptions are raised during processing, errback is called instead.
 
     :type callback: callable
@@ -51,7 +51,7 @@ Request objects
 
     :param body: the request body. If a ``unicode`` is passed, then it's encoded to
       ``str`` using the `encoding` passed (which defaults to ``utf-8``). If
-      ``body`` is not given,, an empty string is stored. Regardless of the
+      ``body`` is not given, an empty string is stored. Regardless of the
       type of this argument, the final value stored will be a ``str`` (never
       ``unicode`` or ``None``).
     :type body: str or unicode
@@ -67,6 +67,7 @@ Request objects
 
             request_with_cookies = Request(url="http://www.example.com",
                                            cookies={'currency': 'USD', 'country': 'UY'})
+
         2. Using a list of dicts::
 
             request_with_cookies = Request(url="http://www.example.com",
@@ -76,14 +77,14 @@ Request objects
                                                     'path': '/currency'}])
 
         The latter form allows for customizing the ``domain`` and ``path``
-        attributes of the cookie. These is only useful if the cookies are saved
+        attributes of the cookie. This is only useful if the cookies are saved
         for later requests.
 
         When some site returns cookies (in a response) those are stored in the
         cookies for that domain and will be sent again in future requests. That's
         the typical behaviour of any regular web browser. However, if, for some
         reason, you want to avoid merging with existing cookies you can instruct
-        Scrapy to do so by setting the ``dont_merge_cookies`` key in the
+        Scrapy to do so by setting the ``dont_merge_cookies`` key to True in the
         :attr:`Request.meta`.
 
         Example of request without merging cookies::
@@ -102,7 +103,8 @@ Request objects
 
     :param priority: the priority of this request (defaults to ``0``).
        The priority is used by the scheduler to define the order used to process
-       requests.
+       requests.  Requests with a higher priority value will execute earlier.
+       Negative values are allowed in order to indicate relatively low-priority.
     :type priority: int
 
     :param dont_filter: indicates that this request should not be filtered by
@@ -156,7 +158,7 @@ Request objects
         ``copy()`` or ``replace()`` methods, and can also be accessed, in your
         spider, from the ``response.meta`` attribute.
 
-    .. _shallow copied: http://docs.python.org/library/copy.html
+    .. _shallow copied: https://docs.python.org/2/library/copy.html
 
     .. method:: Request.copy()
 
@@ -183,12 +185,12 @@ downloaded :class:`Response` object as its first argument.
 Example::
 
     def parse_page1(self, response):
-        return Request("http://www.example.com/some_page.html",
-                          callback=self.parse_page2)
+        return scrapy.Request("http://www.example.com/some_page.html",
+                              callback=self.parse_page2)
 
     def parse_page2(self, response):
         # this would log http://www.example.com/some_page.html
-        self.log("Visited %s" % response.url)
+        self.logger.info("Visited %s", response.url)
 
 In some cases you may be interested in passing arguments to those callback
 functions so you can receive the arguments later, in the second callback. You
@@ -200,8 +202,8 @@ different fields from different pages::
     def parse_page1(self, response):
         item = MyItem()
         item['main_url'] = response.url
-        request = Request("http://www.example.com/some_page.html",
-                          callback=self.parse_page2)
+        request = scrapy.Request("http://www.example.com/some_page.html",
+                                 callback=self.parse_page2)
         request.meta['item'] = item
         return request
 
@@ -223,10 +225,16 @@ Those are:
 * :reqmeta:`dont_redirect`
 * :reqmeta:`dont_retry`
 * :reqmeta:`handle_httpstatus_list`
+* :reqmeta:`handle_httpstatus_all`
 * ``dont_merge_cookies`` (see ``cookies`` parameter of :class:`Request` constructor)
 * :reqmeta:`cookiejar`
+* :reqmeta:`dont_cache`
 * :reqmeta:`redirect_urls`
 * :reqmeta:`bindaddress`
+* :reqmeta:`dont_obey_robotstxt`
+* :reqmeta:`download_timeout`
+* :reqmeta:`download_maxsize`
+* :reqmeta:`proxy`
 
 .. reqmeta:: bindaddress
 
@@ -234,6 +242,15 @@ bindaddress
 -----------
 
 The IP of the outgoing IP address to use for the performing the request.
+
+.. reqmeta:: download_timeout
+
+download_timeout
+----------------
+
+The amount of time (in secs) that the downloader will wait before timing out.
+See also: :setting:`DOWNLOAD_TIMEOUT`.
+
 
 .. _topics-request-response-ref-request-subclasses:
 
@@ -266,7 +283,7 @@ fields with form data from :class:`Response` objects.
     The :class:`FormRequest` objects support the following class method in
     addition to the standard :class:`Request` methods:
 
-    .. classmethod:: FormRequest.from_response(response, [formname=None, formnumber=0, formdata=None, formxpath=None, dont_click=False, ...])
+    .. classmethod:: FormRequest.from_response(response, [formname=None, formnumber=0, formdata=None, formxpath=None, formcss=None, clickdata=None, dont_click=False, ...])
 
        Returns a new :class:`FormRequest` object with its form field values
        pre-populated with those found in the HTML ``<form>`` element contained
@@ -294,6 +311,9 @@ fields with form data from :class:`Response` objects.
        :param formxpath: if given, the first form that matches the xpath will be used.
        :type formxpath: string
 
+       :param formcss: if given, the first form that matches the css selector will be used.
+       :type formcss: string
+
        :param formnumber: the number of form to use, when the response contains
           multiple forms. The first one (and also the default) is ``0``.
        :type formnumber: integer
@@ -302,6 +322,13 @@ fields with form data from :class:`Response` objects.
           already present in the response ``<form>`` element, its value is
           overridden by the one passed in this parameter.
        :type formdata: dict
+
+       :param clickdata: attributes to lookup the control clicked. If it's not
+         given, the form data will be submitted simulating a click on the
+         first clickable element. In addition to html attributes, the control
+         can be identified by its zero-based index relative to other
+         submittable inputs inside the form, via the ``nr`` attribute.
+       :type clickdata: dict
 
        :param dont_click: If True, the form data will be submitted without
          clicking in any element.
@@ -315,6 +342,9 @@ fields with form data from :class:`Response` objects.
 
        .. versionadded:: 0.17
           The ``formxpath`` parameter.
+
+       .. versionadded:: 1.1.0
+          The ``formcss`` parameter.
 
 Request usage examples
 ----------------------
@@ -342,19 +372,24 @@ automatically pre-populated and only override a couple of them, such as the
 user name and password. You can use the :meth:`FormRequest.from_response`
 method for this job. Here's an example spider which uses it::
 
-    class LoginSpider(Spider):
+
+    import scrapy
+
+    class LoginSpider(scrapy.Spider):
         name = 'example.com'
         start_urls = ['http://www.example.com/users/login.php']
 
         def parse(self, response):
-            return [FormRequest.from_response(response,
-                        formdata={'username': 'john', 'password': 'secret'},
-                        callback=self.after_login)]
+            return scrapy.FormRequest.from_response(
+                response,
+                formdata={'username': 'john', 'password': 'secret'},
+                callback=self.after_login
+            )
 
         def after_login(self, response):
             # check login succeed before going on
             if "authentication failed" in response.body:
-                self.log("Login failed", level=log.ERROR)
+                self.logger.error("Login failed")
                 return
 
             # continue scraping with authenticated session...
@@ -411,10 +446,10 @@ Response objects
 
     .. attribute:: Response.body
 
-        A str containing the body of this Response. Keep in mind that Reponse.body
-        is always a str. If you want the unicode version use
-        :meth:`TextResponse.body_as_unicode` (only available in
-        :class:`TextResponse` and subclasses).
+        The body of this Response. Keep in mind that Response.body
+        is always a bytes object. If you want the unicode version use
+        :attr:`TextResponse.text` (only available in :class:`TextResponse`
+        and subclasses).
 
         This attribute is read-only. To change the body of a Response use
         :meth:`replace`.
@@ -465,6 +500,18 @@ Response objects
        given new values by whichever keyword arguments are specified. The
        attribute :attr:`Response.meta` is copied by default.
 
+    .. method:: Response.urljoin(url)
+
+        Constructs an absolute url by combining the Response's :attr:`url` with
+        a possible relative url.
+
+        This is a wrapper over `urlparse.urljoin`_, it's merely an alias for
+        making this call::
+
+            urlparse.urljoin(response.url, url)
+
+.. _urlparse.urljoin: https://docs.python.org/2/library/urlparse.html#urlparse.urljoin
+
 .. _topics-request-response-ref-response-subclasses:
 
 Response subclasses
@@ -496,6 +543,21 @@ TextResponse objects
     :class:`TextResponse` objects support the following attributes in addition
     to the standard :class:`Response` ones:
 
+    .. attribute:: TextResponse.text
+
+       Response body, as unicode.
+
+       The same as ``response.body.decode(response.encoding)``, but the
+       result is cached after the first call, so you can access
+       ``response.text`` multiple times without extra overhead.
+
+       .. note::
+
+            ``unicode(response.body)`` is not a correct way to convert response
+            body to unicode: you would be using the system default encoding
+            (typically `ascii`) instead of the response encoding.
+
+
     .. attribute:: TextResponse.encoding
 
        A string with the encoding of this response. The encoding is resolved by
@@ -514,22 +576,31 @@ TextResponse objects
        4. the encoding inferred by looking at the response body. This is the more
           fragile method but also the last one tried.
 
+    .. attribute:: TextResponse.selector
+
+        A :class:`~scrapy.selector.Selector` instance using the response as
+        target. The selector is lazily instantiated on first access.
+
     :class:`TextResponse` objects support the following methods in addition to
     the standard :class:`Response` ones:
 
+    .. method:: TextResponse.xpath(query)
+
+        A shortcut to ``TextResponse.selector.xpath(query)``::
+
+            response.xpath('//p')
+
+    .. method:: TextResponse.css(query)
+
+        A shortcut to ``TextResponse.selector.css(query)``::
+
+            response.css('p')
+
     .. method:: TextResponse.body_as_unicode()
 
-        Returns the body of the response as unicode. This is equivalent to::
+        The same as :attr:`text`, but available as a method. This method is
+        kept for backwards compatibility; please prefer ``response.text``.
 
-            response.body.decode(response.encoding)
-
-        But **not** equivalent to::
-
-            unicode(response.body)
-
-        Since, in the latter case, you would be using you system default encoding
-        (typically `ascii`) to convert the body to unicode, instead of the response
-        encoding.
 
 HtmlResponse objects
 --------------------
@@ -551,4 +622,4 @@ XmlResponse objects
     adds encoding auto-discovering support by looking into the XML declaration
     line.  See :attr:`TextResponse.encoding`.
 
-.. _Twisted Failure: http://twistedmatrix.com/documents/current/api/twisted.python.failure.Failure.html
+.. _Twisted Failure: https://twistedmatrix.com/documents/current/api/twisted.python.failure.Failure.html

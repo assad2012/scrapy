@@ -1,3 +1,0 @@
-# Tests requirements
-mock
-mitmproxy >= 0.10

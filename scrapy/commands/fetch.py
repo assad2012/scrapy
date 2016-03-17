@@ -1,11 +1,11 @@
 from __future__ import print_function
+import sys, six
 from w3lib.url import is_url
 
-from scrapy.command import ScrapyCommand
+from scrapy.commands import ScrapyCommand
 from scrapy.http import Request
-from scrapy.spider import Spider
 from scrapy.exceptions import UsageError
-from scrapy.utils.spider import create_spider_for_request
+from scrapy.utils.spider import spidercls_for_request, DefaultSpider
 
 class Command(ScrapyCommand):
 
@@ -31,15 +31,19 @@ class Command(ScrapyCommand):
     def _print_headers(self, headers, prefix):
         for key, values in headers.items():
             for value in values:
-                print('%s %s: %s' % (prefix, key, value))
+                self._print_bytes(prefix + b' ' + key + b': ' + value)
 
     def _print_response(self, response, opts):
         if opts.headers:
-            self._print_headers(response.request.headers, '>')
+            self._print_headers(response.request.headers, b'>')
             print('>')
-            self._print_headers(response.headers, '<')
+            self._print_headers(response.headers, b'<')
         else:
-            print(response.body)
+            self._print_bytes(response.body)
+
+    def _print_bytes(self, bytes_):
+        bytes_writer = sys.stdout if six.PY2 else sys.stdout.buffer
+        bytes_writer.write(bytes_ + b'\n')
 
     def run(self, args, opts):
         if len(args) != 1 or not is_url(args[0]):
@@ -48,12 +52,11 @@ class Command(ScrapyCommand):
         request = Request(args[0], callback=cb, dont_filter=True)
         request.meta['handle_httpstatus_all'] = True
 
-        crawler = self.crawler_process.create_crawler()
-        spider = None
+        spidercls = DefaultSpider
+        spider_loader = self.crawler_process.spider_loader
         if opts.spider:
-            spider = crawler.spiders.create(opts.spider)
+            spidercls = spider_loader.load(opts.spider)
         else:
-            spider = create_spider_for_request(crawler.spiders, request, \
-                default_spider=Spider('default'))
-        crawler.crawl(spider, [request])
+            spidercls = spidercls_for_request(spider_loader, request, spidercls)
+        self.crawler_process.crawl(spidercls, start_requests=lambda: [request])
         self.crawler_process.start()

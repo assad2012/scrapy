@@ -29,8 +29,8 @@ In case of status 200 request, response.headers will come with two keys:
 """
 
 import re
-from urlparse import urlparse
-from cStringIO import StringIO
+from io import BytesIO
+from six.moves.urllib.parse import urlparse, unquote
 
 from twisted.internet import reactor
 from twisted.protocols.ftp import FTPClient, CommandFailed
@@ -42,7 +42,7 @@ from scrapy.responsetypes import responsetypes
 class ReceivedDataProtocol(Protocol):
     def __init__(self, filename=None):
         self.__filename = filename
-        self.body = open(filename, "w") if filename else StringIO()
+        self.body = open(filename, "w") if filename else BytesIO()
         self.size = 0
 
     def dataReceived(self, data):
@@ -54,7 +54,7 @@ class ReceivedDataProtocol(Protocol):
         return self.__filename
 
     def close(self):
-        self.body.close() if self.filename else self.body.reset()
+        self.body.close() if self.filename else self.body.seek(0)
 
 _CODE_RE = re.compile("\d+")
 class FTPDownloadHandler(object):
@@ -73,7 +73,7 @@ class FTPDownloadHandler(object):
                                     request.meta["ftp_password"],
                                     passive=request.meta.get("ftp_passive", 1))
         return creator.connectTCP(parsed_url.hostname, parsed_url.port or 21).addCallback(self.gotClient,
-                                request, parsed_url.path)
+                                request, unquote(parsed_url.path))
 
     def gotClient(self, client, request, filepath):
         self.client = client
@@ -83,7 +83,7 @@ class FTPDownloadHandler(object):
                         callbackArgs=(request, protocol),
                         errback=self._failed,
                         errbackArgs=(request,))
-    
+
     def _build_response(self, result, request, protocol):
         self.result = result
         respcls = responsetypes.from_args(url=request.url)
